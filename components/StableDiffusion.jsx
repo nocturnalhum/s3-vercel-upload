@@ -32,74 +32,73 @@ export default function StableDiffusion({
     try {
       // Upload the image to S3
       setLoading(true);
-      console.log('Enter S3 fetch:');
-      const { url } = await fetch('/api/awsurl').then((res) => res.json());
-
-      console.log('Signed URL:', url);
-
       const formData = new FormData();
+      formData.append('file', convertedUrlToFile);
 
-      formData.append('canvas-image', convertedUrlToFile);
+      const res = await fetch(
+        `/api/upload?file=${convertedUrlToFile.name}&${convertedUrlToFile.type}`
+      );
 
-      const s3response = await fetch(url, {
+      const { url } = await res.json();
+
+      const upload = await fetch(url, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        body: formData,
+        body: convertedUrlToFile,
+        headers: { 'Content-Type': 'fileType' },
       });
-
-      const imageUrl = url.split('?')[0];
-      console.log(imageUrl);
-
-      if (s3response.status === 201) {
-        console.log('Enter S3 Success Block');
-        const data = await s3response.json();
-        setMessage('Image uploaded to S3');
-        console.log('Url', data.url);
-        const response = await fetch('/api/predictions1', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            prompt: inputPrompt,
-            img: data?.url, // Use the S3 URL from the response
-          }),
-        });
-        let prediction = await response.json();
-        if (response.status !== 201) {
-          setMessage(prediction.detail);
-          console.log('RES1', response);
-          return;
-        } else {
-          console.log('RES2', response);
-        }
-        setPrediction(prediction);
-
-        while (
-          prediction.status !== 'succeeded' &&
-          prediction.status !== 'failed'
-        ) {
-          setLoading(true);
-          await sleep(1000);
-          const response = await fetch('/api/predictions/' + prediction.id);
-          prediction = await response.json();
-          if (response.status !== 200) {
-            setError(prediction.detail);
-            return;
-          }
-          console.log({ prediction });
-          setPrediction(prediction);
-          setLoading(false);
-        }
+      if (upload.ok) {
+        // const data = await upload.json();
+        console.log('Uploaded Successfully!', upload);
+        setMessage('Uploaded Successfully to S3');
       } else {
-        console.error('Error Fetch S3:', s3response.url, s3response.statusText);
-        setMessage('Error uploading');
-        setError(error.toString());
-        setLoading(false);
-        setFlip(false);
+        console.error('Upload failed.');
       }
+
+      // if (upload.ok) {
+      //   console.log('Url', data.url);
+      //   const response = await fetch('/api/predictions1', {
+      //     method: 'POST',
+      //     headers: {
+      //       'Content-Type': 'application/json',
+      //     },
+      //     body: JSON.stringify({
+      //       prompt: inputPrompt,
+      //       img: data?.url, // Use the S3 URL from the response
+      //     }),
+      //   });
+      //   let prediction = await response.json();
+      //   if (response.status !== 201) {
+      //     setMessage(prediction.detail);
+      //     console.log('RES1', response);
+      //     return;
+      //   } else {
+      //     console.log('RES2', response);
+      //   }
+      //   setPrediction(prediction);
+
+      //   while (
+      //     prediction.status !== 'succeeded' &&
+      //     prediction.status !== 'failed'
+      //   ) {
+      //     setLoading(true);
+      //     await sleep(1000);
+      //     const response = await fetch('/api/predictions/' + prediction.id);
+      //     prediction = await response.json();
+      //     if (response.status !== 200) {
+      //       setError(prediction.detail);
+      //       return;
+      //     }
+      //     console.log({ prediction });
+      //     setPrediction(prediction);
+      //     setLoading(false);
+      //   }
+      // } else {
+      //   console.error('Error Fetch S3:', s3response.url, s3response.statusText);
+      //   setMessage('Error uploading');
+      //   setError(error.toString());
+      //   setLoading(false);
+      //   setFlip(false);
+      // }
     } catch (error) {
       console.error('Error processing image prediction:', error.toString());
       setMessage('Error processing image prediction');

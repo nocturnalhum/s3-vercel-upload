@@ -1,4 +1,5 @@
 import S3 from 'aws-sdk/clients/s3';
+import { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req, res) {
   console.log('REq', req.body);
@@ -9,17 +10,16 @@ export default async function handler(req, res) {
     secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
   });
 
-  // const preSignedUrl = await s3.getSignedUrl('putObject', {
-  //   Bucket: process.env.S3_BUCKET_NAME,
-  //   Key: req.query.file,
-  //   ContentType: req.query.fileType,
-  //   Expires: 5 * 60,
-  // });
-  // res.status(200).json({
-  //   url: preSignedUrl,
-  // });
+  const preSignedUrl = await s3.getSignedUrl('putObject', {
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: req.query.file,
+    ContentType: req.query.fileType,
+    Expires: 5 * 60,
+  });
+  res.status(200).json({
+    url: preSignedUrl,
+  });
 }
-
 // import { S3Client } from '@aws-sdk/client-s3';
 // import aws from 'aws-sdk';
 // import { v4 as uuidv4 } from 'uuid';
@@ -35,7 +35,6 @@ export default async function handler(req, res) {
 // const s3 = new aws.S3();
 
 // export default async function handler(req, res, next) {
-//   console.log('Locaion reh');
 //   const { filename, filetype } = req.body;
 
 //   const fileId = uuidv4();
